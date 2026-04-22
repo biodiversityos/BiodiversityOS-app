@@ -36,10 +36,22 @@ export default function MapComponent({ sightings }: { sightings: Sighting[] }) {
           position={[sighting.latitude, sighting.longitude]}
           icon={customIcon}
         >
-          <Popup className="min-w-[250px]">
+          <Popup maxWidth={280} className="min-w-[260px]">
             <div className="flex flex-col gap-2 p-1">
+
+              {/* Photo */}
+              {sighting.mediaUrl && (
+                <div className="-mx-1 -mt-1 mb-1 overflow-hidden rounded-t-lg">
+                  <img
+                    src={sighting.mediaUrl}
+                    alt={SPECIES_LABELS[sighting.species]}
+                    style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
+                  />
+                </div>
+              )}
+
               <div className="flex items-center gap-2 mb-2 border-b pb-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
                   <Droplet size={16} />
                 </div>
                 <div>

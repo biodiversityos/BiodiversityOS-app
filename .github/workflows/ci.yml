@@ -37,7 +37,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd ${{ secrets.APP_DEPLOY_PATH }}
-            git pull origin main
-            docker compose build
+            cd ${{ secrets.APP_DEPLOY_PATH }} &&
+            git pull origin main &&
+            docker compose build &&
             docker compose up -d --force-recreate
