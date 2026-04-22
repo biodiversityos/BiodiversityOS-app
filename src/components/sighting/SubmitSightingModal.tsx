@@ -104,14 +104,14 @@ export default function SubmitSightingModal({ onClose }: Props) {
               </div>
             </div>
 
-            {/* Species & Behavior */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Species & Behavior — stacked to avoid overflow on long names */}
+            <div className="flex flex-col gap-2">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase font-bold text-gray-500">Species</label>
                 <select
                   value={form.species}
                   onChange={e => setForm(f => ({ ...f, species: e.target.value as Species }))}
-                  className="text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
+                  className="text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white w-full"
                 >
                   {Object.values(Species).map(s => (
                     <option key={s} value={s}>{SPECIES_LABELS[s]}</option>
@@ -123,7 +123,7 @@ export default function SubmitSightingModal({ onClose }: Props) {
                 <select
                   value={form.behavior}
                   onChange={e => setForm(f => ({ ...f, behavior: e.target.value as Behavior }))}
-                  className="text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
+                  className="text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white w-full"
                 >
                   {Object.values(Behavior).map(b => (
                     <option key={b} value={b}>{BEHAVIOR_LABELS[b]}</option>

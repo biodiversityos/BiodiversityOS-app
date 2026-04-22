@@ -9,8 +9,10 @@ body {
   overflow: hidden;
 }
 
-/* RainbowKit renders a wrapper div[data-rk] that breaks the height chain */
-[data-rk] {
+/* RainbowKit renders a wrapper div[data-rk] that breaks the height chain.
+   Only target the outermost wrapper (direct child of body), not nested data-rk
+   elements inside modals, which would break their internal layout. */
+body > div[data-rk] {
   height: 100%;
   width: 100%;
 }
