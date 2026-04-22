@@ -20,7 +20,9 @@ export interface SightingsFilter {
   behavior?: string;
   reporter?: string;
   observedAtGt?: string;
+  observedAtGte?: string;
   observedAtLt?: string;
+  observedAtLte?: string;
 }
 
 export interface SightingsResponse {

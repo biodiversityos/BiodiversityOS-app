@@ -1,7 +1,7 @@
 import { SightingsResponse, SightingsFilter } from "@/types";
 
 const INDEXER_URL =
-  process.env.NEXT_PUBLIC_INDEXER_URL ?? "https://indexer.oceanwatch.xyz/graphql";
+  process.env.NEXT_PUBLIC_INDEXER_URL ?? "http://91.98.145.4/graphql";
 
 export const getSightings = async (filter?: SightingsFilter) => {
   const query = `
@@ -48,6 +48,12 @@ export const getSightings = async (filter?: SightingsFilter) => {
     });
 
     const json: SightingsResponse = await res.json();
+
+    if (!json.data?.records) {
+      console.error("GraphQL error:", JSON.stringify(json));
+      return [];
+    }
+
     return json.data.records.items;
   } catch (err) {
     console.error("GraphQL Fetch Error:", err);
