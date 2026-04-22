@@ -3,8 +3,8 @@
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { Sighting } from "@/types";
-import { Droplet, Info, User } from "lucide-react";
+import { Sighting, SPECIES_LABELS, BEHAVIOR_LABELS } from "@/types";
+import { Droplet, User } from "lucide-react";
 
 const customIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -43,8 +43,8 @@ export default function MapComponent({ sightings }: { sightings: Sighting[] }) {
                   <Droplet size={16} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-800 m-0 text-base leading-none capitalize">
-                    {sighting.species}
+                  <h3 className="font-bold text-gray-800 m-0 text-base leading-none">
+                    {SPECIES_LABELS[sighting.species]}
                   </h3>
                   <span className="text-xs text-gray-500">
                     {new Date(sighting.observedAt).toLocaleDateString()}
@@ -65,8 +65,8 @@ export default function MapComponent({ sightings }: { sightings: Sighting[] }) {
                   <span className="text-gray-400 text-xs uppercase font-semibold">
                     Behavior
                   </span>
-                  <span className="font-medium text-gray-700 capitalize">
-                    {sighting.behavior}
+                  <span className="font-medium text-gray-700">
+                    {BEHAVIOR_LABELS[sighting.behavior]}
                   </span>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import { format } from "date-fns";
+import { Species, Behavior, SPECIES_LABELS, BEHAVIOR_LABELS } from "@/types";
 
 const MIN_DATE = new Date("2024-01-01").getTime();
 const MAX_DATE = new Date("2027-01-01").getTime();
@@ -103,8 +104,8 @@ export default function FilterPanel({ totalSightings }: { totalSightings: number
               onChange={(e) => setSpecies(e.target.value)}
             >
               <option value="">Any Species</option>
-              {['unknown', 'nurse_shark', 'bull_shark', 'caribbean_reef_shark'].map(s => (
-                <option key={s} value={s}>{s.replace('_', ' ')}</option>
+              {Object.values(Species).map(s => (
+                <option key={s} value={s}>{SPECIES_LABELS[s]}</option>
               ))}
             </select>
           </div>
@@ -116,8 +117,8 @@ export default function FilterPanel({ totalSightings }: { totalSightings: number
               onChange={(e) => setBehavior(e.target.value)}
             >
               <option value="">Any Behavior</option>
-              {['unknown', 'hunting', 'feeding', 'migrating', 'stranded', 'resting'].map(b => (
-                <option key={b} value={b}>{b}</option>
+              {Object.values(Behavior).map(b => (
+                <option key={b} value={b}>{BEHAVIOR_LABELS[b]}</option>
               ))}
             </select>
           </div>
