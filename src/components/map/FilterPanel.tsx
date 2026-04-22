@@ -95,11 +95,11 @@ export default function FilterPanel({ totalSightings }: { totalSightings: number
         </div>
 
         {/* Dropdowns */}
-        <div className="flex items-center gap-3 mt-1">
-          <div className="flex flex-col w-full">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col">
             <label className="text-[10px] uppercase text-gray-500 font-bold mb-1">Species</label>
-            <select 
-              className="text-sm p-1.5 border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+            <select
+              className="text-sm p-1.5 border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white w-full"
               value={species}
               onChange={(e) => setSpecies(e.target.value)}
             >
@@ -109,10 +109,10 @@ export default function FilterPanel({ totalSightings }: { totalSightings: number
               ))}
             </select>
           </div>
-          <div className="flex flex-col w-full">
+          <div className="flex flex-col">
             <label className="text-[10px] uppercase text-gray-500 font-bold mb-1">Behavior</label>
-            <select 
-              className="text-sm p-1.5 border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+            <select
+              className="text-sm p-1.5 border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white w-full"
               value={behavior}
               onChange={(e) => setBehavior(e.target.value)}
             >
