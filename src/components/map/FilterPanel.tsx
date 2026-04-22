@@ -19,14 +19,25 @@ export default function FilterPanel({ totalSightings }: { totalSightings: number
   const speciesParam = searchParams.get("species") || "";
   const behaviorParam = searchParams.get("behavior") || "";
 
+  // Use MAX_DATE as SSR-safe end; replace with real Date.now() after hydration
   const [range, setRange] = useState([
     startParam ? new Date(startParam).getTime() : MIN_DATE,
-    endParam ? new Date(endParam).getTime() : new Date().getTime()
+    endParam ? new Date(endParam).getTime() : MAX_DATE,
   ]);
   const [species, setSpecies] = useState(speciesParam);
   const [behavior, setBehavior] = useState(behaviorParam);
 
   const [debouncedRange, setDebouncedRange] = useState(range);
+
+  // Set range[1] to today only on the client (avoids SSR hydration mismatch)
+  useEffect(() => {
+    if (!endParam) {
+      const now = Date.now();
+      setRange(prev => [prev[0], now]);
+      setDebouncedRange(prev => [prev[0], now]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Debounce the slider to avoid extreme network requests
   useEffect(() => {
