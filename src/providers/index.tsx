@@ -20,7 +20,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             borderRadius: "large",
           })}
         >
-          <div style={{ width: "100%", height: "100%" }}>{children}</div>
+          {children}
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

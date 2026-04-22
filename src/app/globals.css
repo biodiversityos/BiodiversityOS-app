@@ -8,3 +8,9 @@ body {
   height: 100vh;
   overflow: hidden;
 }
+
+/* RainbowKit renders a wrapper div[data-rk] that breaks the height chain */
+[data-rk] {
+  height: 100%;
+  width: 100%;
+}
