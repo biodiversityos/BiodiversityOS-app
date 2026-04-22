@@ -79,7 +79,7 @@ export default function MapComponent({ sightings }: { sightings: Sighting[] }) {
 
               <div className="mt-2 pt-2 border-t flex items-center gap-1 text-xs text-gray-400 font-mono">
                 <User size={12} />
-                <span className="truncate">{sighting.wallet}</span>
+                <span className="truncate">{sighting.reporter}</span>
               </div>
             </div>
           </Popup>
