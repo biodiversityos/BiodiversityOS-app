@@ -64,7 +64,7 @@ export default function FilterPanel({ totalSightings }: { totalSightings: number
   return (
     <div className="absolute top-4 left-4 z-[999] bg-white/90 backdrop-blur-md px-6 py-5 rounded-2xl shadow-xl border border-white/20 w-[350px]">
       <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent mb-1">
-        OceanWatch Map
+        biodiversityos Map
       </h1>
       <p className="text-xs text-slate-500 font-medium mb-4">
         {totalSightings} sightings in time range
