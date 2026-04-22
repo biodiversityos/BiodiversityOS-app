@@ -1,5 +1,5 @@
 export interface Sighting {
-  id: string;
+  id: number;
   latitude: number;
   longitude: number;
   species: string;
@@ -7,26 +7,25 @@ export interface Sighting {
   behavior: string;
   observedAt: string;
   createdAt: string;
+  updatedAt: string;
   comment: string | null;
   mediaUrl: string | null;
-  wallet: string;
-  sequenceNumber: number;
-  consensusTimestamp: string;
+  reporter: string;
+  blockNumber: string;
+  txHash: string;
 }
 
 export interface SightingsFilter {
   species?: string;
   behavior?: string;
-  wallet?: string;
+  reporter?: string;
   observedAtGt?: string;
   observedAtLt?: string;
-  observedAtGte?: string;
-  observedAtLte?: string;
 }
 
 export interface SightingsResponse {
   data: {
-    sightings: {
+    records: {
       items: Sighting[];
       total: number;
       hasMore: boolean;

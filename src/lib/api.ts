@@ -1,8 +1,11 @@
 import { SightingsResponse, SightingsFilter } from "@/types";
 
+const INDEXER_URL =
+  process.env.NEXT_PUBLIC_INDEXER_URL ?? "https://indexer.oceanwatch.xyz/graphql";
+
 export const getSightings = async (filter?: SightingsFilter) => {
   const query = `
-    fragment SightingFields on Sighting {
+    fragment RecordFields on Record {
       id
       latitude
       longitude
@@ -11,17 +14,18 @@ export const getSightings = async (filter?: SightingsFilter) => {
       behavior
       observedAt
       createdAt
+      updatedAt
       comment
       mediaUrl
-      wallet
-      sequenceNumber
-      consensusTimestamp
+      reporter
+      blockNumber
+      txHash
     }
 
-    query Sightings($limit: Int = 100, $offset: Int = 0, $filter: SightingsFilter) {
-      sightings(limit: $limit, offset: $offset, filter: $filter) {
+    query Records($limit: Int = 100, $offset: Int = 0, $filter: RecordsFilter) {
+      records(limit: $limit, offset: $offset, filter: $filter) {
         items {
-          ...SightingFields
+          ...RecordFields
         }
         total
         hasMore
@@ -30,21 +34,21 @@ export const getSightings = async (filter?: SightingsFilter) => {
   `;
 
   try {
-    const res = await fetch("https://indexer.oceanwatch.xyz/graphql", {
+    const res = await fetch(INDEXER_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        operationName: "Sightings",
+        operationName: "Records",
         query,
         variables: { limit: 100, offset: 0, filter: filter || null }
       }),
-      cache: 'no-store' 
+      cache: "no-store"
     });
 
     const json: SightingsResponse = await res.json();
-    return json.data.sightings.items;
+    return json.data.records.items;
   } catch (err) {
     console.error("GraphQL Fetch Error:", err);
     return [];
