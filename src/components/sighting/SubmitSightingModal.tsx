@@ -2,13 +2,20 @@
 
 import { useState } from "react";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { X, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, Loader2, CheckCircle2, AlertCircle, MapPin, Navigation, ImagePlus } from "lucide-react";
+import dynamic from "next/dynamic";
 import { Species, Behavior, SPECIES_LABELS, BEHAVIOR_LABELS, DEFAULTS } from "@/types";
 import BiodiversityRegistryABI from "@/abi/BiodiversityRegistry.abi.json";
+
+const LocationPickerMap = dynamic(() => import("./LocationPickerMap"), { ssr: false });
 
 const CONTRACT_ADDRESS = (
   process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ?? "0x0"
 ) as `0x${string}`;
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3000";
+
+type UploadState = "idle" | "uploading" | "done" | "error";
 
 interface Props {
   onClose: () => void;
@@ -16,8 +23,6 @@ interface Props {
 
 export default function SubmitSightingModal({ onClose }: Props) {
   const [form, setForm] = useState({
-    latitude:   "",
-    longitude:  "",
     species:    DEFAULTS.species   as Species,
     behavior:   DEFAULTS.behavior  as Behavior,
     count:      String(DEFAULTS.count),
@@ -26,14 +31,72 @@ export default function SubmitSightingModal({ onClose }: Props) {
     comment:    "",
   });
 
+  // Location state (separate from form to drive map marker)
+  const [lat, setLat] = useState<number | undefined>(undefined);
+  const [lng, setLng] = useState<number | undefined>(undefined);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError]     = useState("");
+
+  // Image upload state
+  const [uploadState, setUploadState] = useState<UploadState>("idle");
+  const [uploadedFilename, setUploadedFilename] = useState("");
+  const [uploadError, setUploadError]  = useState("");
+
   const { writeContract, data: txHash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
+  // ── Geolocation ──────────────────────────────────────────────────────────
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoError("Geolocation is not supported by your browser.");
+      return;
+    }
+    setGeoLoading(true);
+    setGeoError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude);
+        setLng(pos.coords.longitude);
+        setGeoLoading(false);
+      },
+      () => {
+        setGeoError("Unable to retrieve your location. Please pick manually.");
+        setGeoLoading(false);
+      },
+      { timeout: 8000 }
+    );
+  };
+
+  // ── Image upload ─────────────────────────────────────────────────────────
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadState("uploading");
+    setUploadError("");
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+
+      const res = await fetch(`${BACKEND_URL}/upload`, { method: "POST", body: fd });
+      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+
+      const json = (await res.json()) as { cid: string; url: string };
+      setForm(f => ({ ...f, mediaUrl: json.url }));
+      setUploadedFilename(file.name);
+      setUploadState("done");
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+      setUploadState("error");
+    }
+  };
+
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (lat === undefined || lng === undefined) return;
 
-    const lat = parseFloat(form.latitude);
-    const lon = parseFloat(form.longitude);
     const observedAtUnix = BigInt(Math.floor(new Date(form.observedAt).getTime() / 1000));
 
     writeContract({
@@ -41,8 +104,8 @@ export default function SubmitSightingModal({ onClose }: Props) {
       abi:     BiodiversityRegistryABI,
       functionName: "submitRecord",
       args: [
-        BigInt(Math.round(lat * 1_000_000)),   // int256 latitude  (1e6)
-        BigInt(Math.round(lon * 1_000_000)),   // int256 longitude (1e6)
+        BigInt(Math.round(lat  * 1_000_000)),
+        BigInt(Math.round(lng  * 1_000_000)),
         form.species,
         Number(form.count) as unknown as bigint,
         form.behavior,
@@ -53,12 +116,14 @@ export default function SubmitSightingModal({ onClose }: Props) {
     });
   };
 
+  const locationReady = lat !== undefined && lng !== undefined;
+
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative flex flex-col max-h-[90vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
           <h2 className="text-lg font-bold text-gray-800">Submit Sighting</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={20} />
@@ -66,7 +131,7 @@ export default function SubmitSightingModal({ onClose }: Props) {
         </div>
 
         {isSuccess ? (
-          <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <div className="flex flex-col items-center gap-3 py-8 px-6 text-center">
             <CheckCircle2 size={48} className="text-emerald-500" />
             <p className="font-semibold text-gray-800">Sighting submitted!</p>
             <p className="text-xs text-gray-400 font-mono break-all">{txHash}</p>
@@ -78,33 +143,53 @@ export default function SubmitSightingModal({ onClose }: Props) {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-6 pb-6 overflow-y-auto">
 
-            {/* Coordinates */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] uppercase font-bold text-gray-500">Latitude</label>
-                <input
-                  type="number" step="any" required
-                  placeholder="20.4558"
-                  value={form.latitude}
-                  onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))}
-                  className="text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            {/* ── Location ─────────────────────────────────────────── */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
+                  <MapPin size={11} /> Location
+                </label>
+                <button
+                  type="button"
+                  onClick={handleUseMyLocation}
+                  disabled={geoLoading}
+                  className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 hover:text-emerald-500 disabled:opacity-50 transition-colors"
+                >
+                  {geoLoading
+                    ? <Loader2 size={11} className="animate-spin" />
+                    : <Navigation size={11} />}
+                  Use My Location
+                </button>
+              </div>
+
+              {/* Mini map */}
+              <div className="rounded-lg overflow-hidden border border-gray-200">
+                <LocationPickerMap
+                  lat={lat}
+                  lng={lng}
+                  onPick={(lt, lg) => { setLat(lt); setLng(lg); }}
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] uppercase font-bold text-gray-500">Longitude</label>
-                <input
-                  type="number" step="any" required
-                  placeholder="-86.9026"
-                  value={form.longitude}
-                  onChange={e => setForm(f => ({ ...f, longitude: e.target.value }))}
-                  className="text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                />
-              </div>
+
+              {/* Coordinate readout */}
+              {locationReady ? (
+                <p className="text-[11px] font-mono text-gray-500 text-center">
+                  {lat!.toFixed(5)}, {lng!.toFixed(5)}
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-400 text-center">
+                  Click the map or use your location
+                </p>
+              )}
+
+              {geoError && (
+                <p className="text-[11px] text-red-500">{geoError}</p>
+              )}
             </div>
 
-            {/* Species & Behavior — stacked to avoid overflow on long names */}
+            {/* ── Species & Behavior ───────────────────────────────── */}
             <div className="flex flex-col gap-2">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase font-bold text-gray-500">Species</label>
@@ -132,7 +217,7 @@ export default function SubmitSightingModal({ onClose }: Props) {
               </div>
             </div>
 
-            {/* Count & Date */}
+            {/* ── Count & Date ─────────────────────────────────────── */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase font-bold text-gray-500">Count</label>
@@ -154,32 +239,66 @@ export default function SubmitSightingModal({ onClose }: Props) {
               </div>
             </div>
 
-            {/* Media URL */}
+            {/* ── Image upload ─────────────────────────────────────── */}
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase font-bold text-gray-500">Media URL (IPFS, optional)</label>
-              <input
-                type="text"
-                placeholder="ipfs://Qm..."
-                value={form.mediaUrl}
-                onChange={e => setForm(f => ({ ...f, mediaUrl: e.target.value }))}
-                className="text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-              />
+              <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
+                <ImagePlus size={11} /> Photo (optional)
+              </label>
+
+              {uploadState === "done" ? (
+                <div className="flex items-center gap-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                  <span className="text-xs text-emerald-700 truncate">{uploadedFilename}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setUploadState("idle"); setForm(f => ({ ...f, mediaUrl: "" })); }}
+                    className="ml-auto text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 p-2 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-emerald-400 transition-colors">
+                  {uploadState === "uploading" ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin text-emerald-500" />
+                      <span className="text-xs text-gray-500">Uploading to IPFS…</span>
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus size={14} className="text-gray-400" />
+                      <span className="text-xs text-gray-400">Click to select image</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    disabled={uploadState === "uploading"}
+                  />
+                </label>
+              )}
+
+              {uploadState === "error" && (
+                <p className="text-[11px] text-red-500">{uploadError}</p>
+              )}
             </div>
 
-            {/* Comment */}
+            {/* ── Comment ──────────────────────────────────────────── */}
             <div className="flex flex-col gap-1">
               <label className="text-[10px] uppercase font-bold text-gray-500">Comment (optional)</label>
               <textarea
                 rows={2}
                 maxLength={2000}
-                placeholder="Describe the sighting..."
+                placeholder="Describe the sighting…"
                 value={form.comment}
                 onChange={e => setForm(f => ({ ...f, comment: e.target.value }))}
                 className="text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-none"
               />
             </div>
 
-            {/* Error */}
+            {/* ── Contract error ───────────────────────────────────── */}
             {error && (
               <div className="flex items-center gap-2 text-red-500 text-xs bg-red-50 p-2 rounded-lg">
                 <AlertCircle size={14} />
@@ -187,14 +306,18 @@ export default function SubmitSightingModal({ onClose }: Props) {
               </div>
             )}
 
-            {/* Submit */}
+            {/* ── Submit ───────────────────────────────────────────── */}
             <button
               type="submit"
-              disabled={isPending || isConfirming}
-              className="mt-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-full font-semibold text-sm transition-colors"
+              disabled={isPending || isConfirming || !locationReady}
+              className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-full font-semibold text-sm transition-colors"
             >
               {(isPending || isConfirming) && <Loader2 size={15} className="animate-spin" />}
-              {isPending ? "Confirm in wallet…" : isConfirming ? "Confirming…" : "Submit Sighting"}
+              {!locationReady
+                ? "Pick a location first"
+                : isPending ? "Confirm in wallet…"
+                : isConfirming ? "Confirming…"
+                : "Submit Sighting"}
             </button>
 
           </form>
