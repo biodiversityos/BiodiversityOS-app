@@ -1,6 +1,8 @@
 import InteractiveMap from "@/components/map/InteractiveMap";
 import FilterPanel from "@/components/map/FilterPanel";
+import WalletBar from "@/components/wallet/WalletBar";
 import { getSightings } from "@/lib/api";
+import { Species, Behavior } from "@/types";
 
 type PageProps = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -17,8 +19,8 @@ export default async function Home({ searchParams }: PageProps) {
   const sightings = await getSightings({
     observedAtGte: start,
     observedAtLte: end,
-    species: species || undefined,
-    behavior: behavior || undefined
+    species: species as Species | undefined,
+    behavior: behavior as Behavior | undefined
   });
 
   return (
@@ -26,6 +28,9 @@ export default async function Home({ searchParams }: PageProps) {
       {/* Панель фильтрации слева сверху */}
       <FilterPanel totalSightings={sightings.length} />
       
+      {/* Wallet + Submit button */}
+      <WalletBar />
+
       {/* Карта */}
       <InteractiveMap sightings={sightings} />
     </main>
