@@ -12,6 +12,7 @@ import {
   Behavior,
 } from "@/types";
 import { MapPin, User, Ruler, Gauge, ExternalLink } from "lucide-react";
+import { OCEAN_BASE, OCEAN_LABELS } from "@/lib/basemap";
 
 /** Sightings are georeferenced to official dive sites, so many share a point. */
 interface SiteGroup {
@@ -185,13 +186,16 @@ export default function MapComponent({ sightings }: { sightings: Sighting[] }) {
     <MapContainer
       center={[20.42, -86.95]}
       zoom={11}
+      maxZoom={OCEAN_BASE.maxZoom}
       className="w-full h-full z-0"
       zoomControl={false}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        url={OCEAN_BASE.url}
+        attribution={OCEAN_BASE.attribution}
+        maxZoom={OCEAN_BASE.maxZoom}
       />
+      <TileLayer url={OCEAN_LABELS.url} maxZoom={OCEAN_LABELS.maxZoom} />
 
       <FitToSightings groups={groups} />
 

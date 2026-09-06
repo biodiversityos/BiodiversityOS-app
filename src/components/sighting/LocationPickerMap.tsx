@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { OCEAN_BASE, OCEAN_LABELS } from "@/lib/basemap";
 import L from "leaflet";
 
 const markerIcon = new L.Icon({
@@ -49,7 +50,8 @@ export default function LocationPickerMap({ lat, lng, onPick }: Props) {
       zoomControl={false}
       attributionControl={false}
     >
-      <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+      <TileLayer url={OCEAN_BASE.url} attribution={OCEAN_BASE.attribution} maxZoom={OCEAN_BASE.maxZoom} />
+      <TileLayer url={OCEAN_LABELS.url} maxZoom={OCEAN_LABELS.maxZoom} />
       <ClickHandler onPick={onPick} />
       <RecenterOnPick lat={lat} lng={lng} />
       {lat !== undefined && lng !== undefined && (
