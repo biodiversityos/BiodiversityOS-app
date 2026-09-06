@@ -95,6 +95,20 @@ export interface Sighting {
   txHash:      string;
 }
 
+/**
+ * What the map needs to place a marker. The full record — comments, media,
+ * transaction hashes — is six times larger and is only ever read inside a
+ * popup, so it is fetched when one opens rather than shipped with every page.
+ */
+export interface SightingSummary {
+  id:        number;
+  latitude:  number;
+  longitude: number;
+  species:   Species;
+  count:     number;
+  siteName:  string | null;
+}
+
 export interface SightingsFilter {
   species?:       Species;
   behavior?:      Behavior;

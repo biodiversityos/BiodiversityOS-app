@@ -3,15 +3,18 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Sighting,
+  SightingSummary,
+  SightingsFilter,
   SPECIES_LABELS,
   SPECIES_SCIENTIFIC,
   BEHAVIOR_LABELS,
   Behavior,
 } from "@/types";
-import { MapPin, User, Ruler, Gauge, ExternalLink } from "lucide-react";
+import { fetchSiteSightings } from "@/lib/api";
+import { MapPin, User, Ruler, Gauge, ExternalLink, Loader2 } from "lucide-react";
 import { SATELLITE, PLACE_LABELS } from "@/lib/basemap";
 
 /** Sightings are georeferenced to official dive sites, so many share a point. */
@@ -20,10 +23,10 @@ interface SiteGroup {
   latitude: number;
   longitude: number;
   siteName: string | null;
-  sightings: Sighting[];
+  sightings: SightingSummary[];
 }
 
-function groupBySite(sightings: Sighting[]): SiteGroup[] {
+function groupBySite(sightings: SightingSummary[]): SiteGroup[] {
   const groups = new Map<string, SiteGroup>();
   for (const s of sightings) {
     // Round to ~1 m so floating-point noise does not split one site in two.
@@ -41,10 +44,6 @@ function groupBySite(sightings: Sighting[]): SiteGroup[] {
     }
     group.sightings.push(s);
     if (!group.siteName && s.siteName) group.siteName = s.siteName;
-  }
-
-  for (const group of groups.values()) {
-    group.sightings.sort((a, b) => (b.observedAt ?? "").localeCompare(a.observedAt ?? ""));
   }
   return [...groups.values()];
 }
@@ -197,8 +196,69 @@ function SightingRow({ sighting }: { sighting: Sighting }) {
   );
 }
 
-export default function MapComponent({ sightings }: { sightings: Sighting[] }) {
+function SitePopupBody({
+  group,
+  filter,
+}: {
+  group: SiteGroup;
+  filter?: SightingsFilter;
+}) {
+  const [sightings, setSightings] = useState<Sighting[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  // A site with no name cannot be queried; that is known before any effect runs.
+  const unqueryable = !group.siteName;
+
+  // Runs when the popup opens, not when the map renders: this is the request
+  // the page used to make for every site up front.
+  useEffect(() => {
+    if (unqueryable) return;
+    let cancelled = false;
+    fetchSiteSightings(group.siteName!, filter).then((rows) => {
+      if (cancelled) return;
+      if (rows.length === 0) setFailed(true);
+      else setSightings(rows.sort((a, b) => (b.observedAt ?? "").localeCompare(a.observedAt ?? "")));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [group.siteName, unqueryable, filter]);
+
+  if (unqueryable || failed) {
+    return <p className="text-[11px] text-gray-400 py-2">Could not load the sightings for this site.</p>;
+  }
+
+  if (!sightings) {
+    return (
+      <div className="flex items-center gap-2 py-3 text-[11px] text-gray-400">
+        <Loader2 size={12} className="animate-spin" />
+        Loading sightings…
+      </div>
+    );
+  }
+
+  return (
+    <ul className="list-none p-0 m-0 max-h-72 overflow-y-auto">
+      {sightings.map((s) => (
+        <SightingRow key={s.id} sighting={s} />
+      ))}
+    </ul>
+  );
+}
+
+export default function MapComponent({
+  sightings,
+  filter,
+}: {
+  sightings: SightingSummary[];
+  filter?: SightingsFilter;
+}) {
   const groups = useMemo(() => groupBySite(sightings), [sightings]);
+  const [opened, setOpened] = useState<Set<string>>(new Set());
+
+  const markOpen = useCallback((key: string) => {
+    setOpened((prev) => (prev.has(key) ? prev : new Set(prev).add(key)));
+  }, []);
 
   return (
     <MapContainer
@@ -224,6 +284,7 @@ export default function MapComponent({ sightings }: { sightings: Sighting[] }) {
             key={group.key}
             position={[group.latitude, group.longitude]}
             icon={siteIcon(total)}
+            eventHandlers={{ popupopen: () => markOpen(group.key) }}
           >
             <Popup maxWidth={320} className="min-w-[280px]">
               <div className="flex flex-col p-1">
@@ -243,11 +304,7 @@ export default function MapComponent({ sightings }: { sightings: Sighting[] }) {
                   </div>
                 </div>
 
-                <ul className="list-none p-0 m-0 max-h-72 overflow-y-auto">
-                  {group.sightings.map((s) => (
-                    <SightingRow key={s.id} sighting={s} />
-                  ))}
-                </ul>
+                {opened.has(group.key) && <SitePopupBody group={group} filter={filter} />}
               </div>
             </Popup>
           </Marker>

@@ -2,26 +2,29 @@
 
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
-import { Sighting } from "@/types";
+import { SightingSummary, SightingsFilter } from "@/types";
 
-// Динамический импорт карты, чтобы избежать ошибки "window is not defined" при SSR
+const Loading = () => (
+  <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-white">
+    Loading map…
+  </div>
+);
+
+// Loaded on the client only: Leaflet touches `window` at import time.
 const MapComponent = dynamic(() => import("./MapComponent"), {
   ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-white">
-      Загрузка карты...
-    </div>
-  ),
+  loading: Loading,
 });
 
-export default function InteractiveMap({ sightings }: { sightings: Sighting[] }) {
+interface Props {
+  sightings: SightingSummary[];
+  filter?: SightingsFilter;
+}
+
+export default function InteractiveMap({ sightings, filter }: Props) {
   return (
-    <Suspense fallback={
-      <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-white">
-        Загрузка карты...
-      </div>
-    }>
-      <MapComponent sightings={sightings} />
+    <Suspense fallback={<Loading />}>
+      <MapComponent sightings={sightings} filter={filter} />
     </Suspense>
   );
 }

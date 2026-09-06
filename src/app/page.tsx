@@ -1,7 +1,7 @@
 import InteractiveMap from "@/components/map/InteractiveMap";
 import FilterPanel from "@/components/map/FilterPanel";
 import WalletBar from "@/components/wallet/WalletBar";
-import { getSightings, getSites } from "@/lib/api";
+import { getSightingSummaries, getSites } from "@/lib/api";
 import { Species, Behavior } from "@/types";
 
 type PageProps = {
@@ -24,14 +24,16 @@ function asEnum<T extends Record<string, string>>(
 export default async function Home({ searchParams }: PageProps) {
   const params = await searchParams;
 
+  const filter = {
+    observedAtGte: one(params?.start),
+    observedAtLte: one(params?.end),
+    species: asEnum(Species, one(params?.species)),
+    behavior: asEnum(Behavior, one(params?.behavior)),
+    siteName: one(params?.site),
+  };
+
   const [sightings, sites] = await Promise.all([
-    getSightings({
-      observedAtGte: one(params?.start),
-      observedAtLte: one(params?.end),
-      species: asEnum(Species, one(params?.species)),
-      behavior: asEnum(Behavior, one(params?.behavior)),
-      siteName: one(params?.site),
-    }),
+    getSightingSummaries(filter),
     getSites(),
   ]);
 
@@ -39,7 +41,7 @@ export default async function Home({ searchParams }: PageProps) {
     <main className="w-full h-full relative p-0 m-0 overflow-hidden">
       <FilterPanel totalSightings={sightings.length} sites={sites} />
       <WalletBar />
-      <InteractiveMap sightings={sightings} />
+      <InteractiveMap sightings={sightings} filter={filter} />
     </main>
   );
 }
