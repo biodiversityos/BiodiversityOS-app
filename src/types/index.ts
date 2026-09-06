@@ -14,6 +14,8 @@ export enum Species {
 }
 
 export enum Behavior {
+  SWIMMING   = "swimming",
+  SHELTERING = "sheltering",
   FEEDING   = "feeding",
   MIGRATING = "migrating",
   RESTING   = "resting",
@@ -53,6 +55,8 @@ export const SPECIES_SCIENTIFIC: Record<Species, string> = {
 };
 
 export const BEHAVIOR_LABELS: Record<Behavior, string> = {
+  [Behavior.SWIMMING]:   "Swimming",
+  [Behavior.SHELTERING]: "Sheltering",
   [Behavior.FEEDING]:   "Feeding",
   [Behavior.MIGRATING]: "Migrating",
   [Behavior.RESTING]:   "Resting",
