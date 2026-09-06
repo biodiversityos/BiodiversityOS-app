@@ -12,7 +12,7 @@ import {
   Behavior,
 } from "@/types";
 import { MapPin, User, Ruler, Gauge, ExternalLink } from "lucide-react";
-import { OCEAN_BASE, OCEAN_LABELS } from "@/lib/basemap";
+import { SATELLITE, PLACE_LABELS } from "@/lib/basemap";
 
 /** Sightings are georeferenced to official dive sites, so many share a point. */
 interface SiteGroup {
@@ -104,11 +104,29 @@ function formatDate(observedAt: string | null): string {
 /** Keeps the viewport on the data instead of a hardcoded region. */
 function FitToSightings({ groups }: { groups: SiteGroup[] }) {
   const map = useMap();
+
   useEffect(() => {
     if (groups.length === 0) return;
     const bounds = L.latLngBounds(groups.map((g) => [g.latitude, g.longitude] as [number, number]));
-    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13 });
+
+    // Not animated: this is the initial framing, and easing into it from the
+    // default centre just delays the first useful paint.
+    const fit = () => map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13, animate: false });
+
+    map.invalidateSize({ animate: false });
+    fit();
+
+    // Refit when the map is resized, otherwise the sites drift off-screen.
+    const onResize = () => {
+      map.invalidateSize({ animate: false });
+      fit();
+    };
+    map.on("resize", onResize);
+    return () => {
+      map.off("resize", onResize);
+    };
   }, [groups, map]);
+
   return null;
 }
 
@@ -186,16 +204,16 @@ export default function MapComponent({ sightings }: { sightings: Sighting[] }) {
     <MapContainer
       center={[20.42, -86.95]}
       zoom={11}
-      maxZoom={OCEAN_BASE.maxZoom}
+      maxZoom={SATELLITE.maxZoom}
       className="w-full h-full z-0"
       zoomControl={false}
     >
       <TileLayer
-        url={OCEAN_BASE.url}
-        attribution={OCEAN_BASE.attribution}
-        maxZoom={OCEAN_BASE.maxZoom}
+        url={SATELLITE.url}
+        attribution={SATELLITE.attribution}
+        maxZoom={SATELLITE.maxZoom}
       />
-      <TileLayer url={OCEAN_LABELS.url} maxZoom={OCEAN_LABELS.maxZoom} />
+      <TileLayer url={PLACE_LABELS.url} maxZoom={PLACE_LABELS.maxZoom} />
 
       <FitToSightings groups={groups} />
 
