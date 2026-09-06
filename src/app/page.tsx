@@ -1,37 +1,44 @@
 import InteractiveMap from "@/components/map/InteractiveMap";
 import FilterPanel from "@/components/map/FilterPanel";
 import WalletBar from "@/components/wallet/WalletBar";
-import { getSightings } from "@/lib/api";
+import { getSightings, getSites } from "@/lib/api";
 import { Species, Behavior } from "@/types";
 
 type PageProps = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function Home({ searchParams }: PageProps) {
-  // Await searchParams in Next 15
-  const params = await searchParams;
-  const start = params?.start as string | undefined;
-  const end = params?.end as string | undefined;
-  const species = params?.species as string | undefined;
-  const behavior = params?.behavior as string | undefined;
+function one(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
 
-  const sightings = await getSightings({
-    observedAtGte: start,
-    observedAtLte: end,
-    species: species as Species | undefined,
-    behavior: behavior as Behavior | undefined
-  });
+/** Ignore hand-edited query values that are not part of the enum. */
+function asEnum<T extends Record<string, string>>(
+  e: T,
+  value: string | undefined,
+): T[keyof T] | undefined {
+  if (!value) return undefined;
+  return Object.values(e).includes(value) ? (value as T[keyof T]) : undefined;
+}
+
+export default async function Home({ searchParams }: PageProps) {
+  const params = await searchParams;
+
+  const [sightings, sites] = await Promise.all([
+    getSightings({
+      observedAtGte: one(params?.start),
+      observedAtLte: one(params?.end),
+      species: asEnum(Species, one(params?.species)),
+      behavior: asEnum(Behavior, one(params?.behavior)),
+      siteName: one(params?.site),
+    }),
+    getSites(),
+  ]);
 
   return (
     <main className="w-full h-full relative p-0 m-0 overflow-hidden">
-      {/* Панель фильтрации слева сверху */}
-      <FilterPanel totalSightings={sightings.length} />
-      
-      {/* Wallet + Submit button */}
+      <FilterPanel totalSightings={sightings.length} sites={sites} />
       <WalletBar />
-
-      {/* Карта */}
       <InteractiveMap sightings={sightings} />
     </main>
   );
