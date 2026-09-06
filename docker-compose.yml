@@ -13,4 +13,11 @@ services:
       - "127.0.0.1:${PORT:-3001}:3000"
     env_file:
       - .env
+    networks:
+      default:
+      bos:
     restart: unless-stopped
+
+networks:
+  bos:
+    external: true

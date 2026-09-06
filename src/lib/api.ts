@@ -1,7 +1,46 @@
 import { Sighting, SightingsFilter } from "@/types";
 
+/**
+ * These queries run on the server, so they can take the short path.
+ *
+ * Reaching the indexer through its public hostname sends a call between two
+ * containers on the same host out through DNS, hairpin NAT and nginx, and
+ * Docker's resolver intermittently answers EAI_AGAIN on that path — which
+ * renders as an empty map with no error anywhere the user can see.
+ * INDEXER_INTERNAL_URL points straight at the container over a shared network.
+ */
 const INDEXER_URL =
-  process.env.NEXT_PUBLIC_INDEXER_URL ?? "https://indexer.biodiversityos.org/graphql";
+  process.env.INDEXER_INTERNAL_URL ??
+  process.env.NEXT_PUBLIC_INDEXER_URL ??
+  "https://indexer.biodiversityos.org/graphql";
+
+const RETRIES = 3;
+
+function isTransient(err: unknown): boolean {
+  const code = (err as { cause?: { code?: string } })?.cause?.code;
+  return code === "EAI_AGAIN" || code === "ECONNRESET" || code === "ETIMEDOUT";
+}
+
+async function postQuery(body: unknown): Promise<Response | null> {
+  for (let attempt = 1; attempt <= RETRIES; attempt++) {
+    try {
+      return await fetch(INDEXER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        cache: "no-store",
+      });
+    } catch (err) {
+      // A name-resolution hiccup should cost a retry, not the whole page.
+      if (attempt === RETRIES || !isTransient(err)) {
+        console.error("Indexer fetch error:", err);
+        return null;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+    }
+  }
+  return null;
+}
 
 /** The indexer caps a single page at 1000; stay under it and page through. */
 const PAGE_SIZE = 500;
@@ -46,33 +85,24 @@ async function queryPage(
   filter: SightingsFilter | undefined,
   offset: number,
 ): Promise<RecordsPage | null> {
-  try {
-    const res = await fetch(INDEXER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        operationName: "Records",
-        query: RECORDS_QUERY,
-        variables: { limit: PAGE_SIZE, offset, filter: filter ?? null },
-      }),
-      cache: "no-store",
-    });
+  const res = await postQuery({
+    operationName: "Records",
+    query: RECORDS_QUERY,
+    variables: { limit: PAGE_SIZE, offset, filter: filter ?? null },
+  });
+  if (!res) return null;
 
-    if (!res.ok) {
-      console.error(`Indexer responded ${res.status}`);
-      return null;
-    }
-
-    const json = await res.json();
-    if (!json.data?.records) {
-      console.error("GraphQL error:", JSON.stringify(json.errors ?? json));
-      return null;
-    }
-    return json.data.records as RecordsPage;
-  } catch (err) {
-    console.error("GraphQL fetch error:", err);
+  if (!res.ok) {
+    console.error(`Indexer responded ${res.status}`);
     return null;
   }
+
+  const json = await res.json();
+  if (!json.data?.records) {
+    console.error("GraphQL error:", JSON.stringify(json.errors ?? json));
+    return null;
+  }
+  return json.data.records as RecordsPage;
 }
 
 /**
@@ -94,17 +124,8 @@ export const getSightings = async (filter?: SightingsFilter): Promise<Sighting[]
 };
 
 export const getSites = async (): Promise<string[]> => {
-  try {
-    const res = await fetch(INDEXER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: "{ sites }" }),
-      cache: "no-store",
-    });
-    const json = await res.json();
-    return (json.data?.sites as string[]) ?? [];
-  } catch (err) {
-    console.error("GraphQL fetch error:", err);
-    return [];
-  }
+  const res = await postQuery({ query: "{ sites }" });
+  if (!res || !res.ok) return [];
+  const json = await res.json();
+  return (json.data?.sites as string[]) ?? [];
 };
