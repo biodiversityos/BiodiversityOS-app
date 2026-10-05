@@ -10,7 +10,7 @@ import BiodiversityRegistryABI from "@/abi/BiodiversityRegistry.abi.json";
 
 const LocationPickerMap = dynamic(() => import("./LocationPickerMap"), { ssr: false });
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
 
 type UploadState = "idle" | "signing" | "uploading" | "done" | "error";
 

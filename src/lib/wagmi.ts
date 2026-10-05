@@ -9,12 +9,12 @@ const isMainnet = process.env.NEXT_PUBLIC_CHAIN === "mainnet";
 // celoSepolia default RPC is forno.celo-sepolia.celo-testnet.org (chainId 11142220).
 // Override via NEXT_PUBLIC_TESTNET_RPC_URL if needed.
 const testnetRpc =
-  process.env.NEXT_PUBLIC_TESTNET_RPC_URL ??
+  process.env.NEXT_PUBLIC_TESTNET_RPC_URL ||
   "https://forno.celo-sepolia.celo-testnet.org";
 
 export const config = getDefaultConfig({
   appName: "BiodiversityOS",
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "biodiversityos",
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "biodiversityos",
   chains: isMainnet ? [celo, celoSepolia] : [celoSepolia, celo],
   transports: {
     [celo.id]:       http(),

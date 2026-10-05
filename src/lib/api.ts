@@ -10,13 +10,13 @@ import { Sighting, SightingSummary, SightingsFilter } from "@/types";
  * INDEXER_INTERNAL_URL points straight at the container over a shared network.
  */
 const INDEXER_URL =
-  process.env.INDEXER_INTERNAL_URL ??
-  process.env.NEXT_PUBLIC_INDEXER_URL ??
+  process.env.INDEXER_INTERNAL_URL ||
+  process.env.NEXT_PUBLIC_INDEXER_URL ||
   "https://indexer.biodiversityos.org/graphql";
 
 /** The browser cannot use the internal address; it must go through nginx. */
 const PUBLIC_INDEXER_URL =
-  process.env.NEXT_PUBLIC_INDEXER_URL ?? "https://indexer.biodiversityos.org/graphql";
+  process.env.NEXT_PUBLIC_INDEXER_URL || "https://indexer.biodiversityos.org/graphql";
 
 const RETRIES = 3;
 
@@ -25,7 +25,7 @@ const RETRIES = 3;
  * re-querying the indexer for every visitor buys nothing. A short window keeps
  * a submitted sighting visible quickly while collapsing repeat traffic.
  */
-const REVALIDATE_SECONDS = Number(process.env.INDEXER_REVALIDATE_SECONDS ?? 60);
+const REVALIDATE_SECONDS = Number(process.env.INDEXER_REVALIDATE_SECONDS || 60);
 
 function isTransient(err: unknown): boolean {
   const code = (err as { cause?: { code?: string } })?.cause?.code;
