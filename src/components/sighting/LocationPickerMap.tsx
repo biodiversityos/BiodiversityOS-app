@@ -39,14 +39,17 @@ interface Props {
   lat?: number;
   lng?: number;
   onPick: (lat: number, lng: number) => void;
+  /** Height classes; the modal gives the map far more room on a wide screen. */
+  className?: string;
 }
 
-export default function LocationPickerMap({ lat, lng, onPick }: Props) {
+export default function LocationPickerMap({ lat, lng, onPick, className }: Props) {
   return (
     <MapContainer
       center={[lat ?? 20.37, lng ?? -87.04]}
       zoom={5}
-      style={{ height: 180, width: "100%", borderRadius: 8, cursor: "crosshair" }}
+      className={className ?? "h-[180px]"}
+      style={{ width: "100%", borderRadius: 8, cursor: "crosshair" }}
       zoomControl={false}
       attributionControl={false}
     >

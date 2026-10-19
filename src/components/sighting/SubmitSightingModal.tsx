@@ -147,7 +147,7 @@ export default function SubmitSightingModal({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md md:max-w-4xl relative flex flex-col max-h-[92vh]">
 
         <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
           <h2 className="text-lg font-bold text-gray-800">Submit Sighting</h2>
@@ -169,10 +169,11 @@ export default function SubmitSightingModal({ onClose }: Props) {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-6 pb-6 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+            <div className="grid md:grid-cols-2 gap-x-7 gap-y-4 px-6 pb-5 overflow-y-auto">
 
             {/* ── Location ─────────────────────────────────────────── */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 md:sticky md:top-0 md:self-start">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
                   <MapPin size={11} /> Location
@@ -189,7 +190,12 @@ export default function SubmitSightingModal({ onClose }: Props) {
               </div>
 
               <div className="rounded-lg overflow-hidden border border-gray-200">
-                <LocationPickerMap lat={lat} lng={lng} onPick={(lt, lg) => { setLat(lt); setLng(lg); }} />
+                <LocationPickerMap
+                  lat={lat}
+                  lng={lng}
+                  onPick={(lt, lg) => { setLat(lt); setLng(lg); }}
+                  className="h-[180px] md:h-[420px]"
+                />
               </div>
 
               {locationReady ? (
@@ -202,6 +208,9 @@ export default function SubmitSightingModal({ onClose }: Props) {
 
               {geoError && <p className="text-[11px] text-red-500">{geoError}</p>}
             </div>
+
+            {/* ── Everything else, beside the map on a wide screen ─── */}
+            <div className="flex flex-col gap-4 min-w-0">
 
             {/* ── Dive site ────────────────────────────────────────── */}
             <div className="flex flex-col gap-1">
@@ -350,25 +359,31 @@ export default function SubmitSightingModal({ onClose }: Props) {
               </p>
             </div>
 
-            {error && (
-              <div className="flex items-start gap-2 text-red-500 text-xs bg-red-50 p-2 rounded-lg">
-                <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                <span>{error.message.split("\n")[0]}</span>
-              </div>
-            )}
+            </div>
+            </div>
 
-            <button
-              type="submit"
-              disabled={isPending || isConfirming || !locationReady || uploadBusy}
-              className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-full font-semibold text-sm transition-colors"
-            >
-              {(isPending || isConfirming) && <Loader2 size={15} className="animate-spin" />}
-              {!locationReady
-                ? "Pick a location first"
-                : isPending ? "Confirm in wallet…"
-                : isConfirming ? "Confirming…"
-                : "Submit Sighting"}
-            </button>
+            {/* Outside the scroll area so the action never scrolls away. */}
+            <div className="flex flex-col gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+              {error && (
+                <div className="flex items-start gap-2 text-red-500 text-xs bg-red-50 p-2 rounded-lg">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>{error.message.split("\n")[0]}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isPending || isConfirming || !locationReady || uploadBusy}
+                className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-full font-semibold text-sm transition-colors"
+              >
+                {(isPending || isConfirming) && <Loader2 size={15} className="animate-spin" />}
+                {!locationReady
+                  ? "Pick a location first"
+                  : isPending ? "Confirm in wallet…"
+                  : isConfirming ? "Confirming…"
+                  : "Submit Sighting"}
+              </button>
+            </div>
 
           </form>
         )}
