@@ -1,11 +1,12 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useDisconnect } from "wagmi";
-import { useState } from "react";
-import { Plus, LogOut, ShieldAlert, Loader2 } from "lucide-react";
+import { useAccount, useDisconnect, useSwitchChain } from "wagmi";
+import { useEffect, useRef, useState } from "react";
+import { Plus, LogOut, ShieldAlert, Loader2, Network } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useIsAccredited } from "@/hooks/useIsAccredited";
+import { targetChain } from "@/lib/wagmi";
 
 const SubmitSightingModal = dynamic(
   () => import("@/components/sighting/SubmitSightingModal"),
@@ -44,16 +45,53 @@ function NotAccreditedBadge() {
   );
 }
 
+/**
+ * Offers the one network the registry lives on.
+ *
+ * Celo mainnet is in the wallet's chain list, so a wallet connected there is
+ * not "unsupported" — it simply reads an address that holds no contract, and
+ * the reporter is told they are not accredited when the real problem is the
+ * network. Switching is offered explicitly instead.
+ */
+function SwitchNetworkButton() {
+  const { switchChain, isPending } = useSwitchChain();
+
+  return (
+    <button
+      onClick={() => switchChain({ chainId: targetChain.id })}
+      disabled={isPending}
+      className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-white text-xs font-bold rounded-full shadow-lg transition-colors"
+    >
+      {isPending ? <Loader2 size={14} className="animate-spin" /> : <Network size={14} />}
+      Switch to {targetChain.name}
+    </button>
+  );
+}
+
 export default function WalletBar() {
   const { disconnect } = useDisconnect();
   const [open, setOpen] = useState(false);
   const { isAccredited, isLoading } = useIsAccredited();
+  const { address, chainId } = useAccount();
+  const { switchChain } = useSwitchChain();
+  const promptedFor = useRef<string | null>(null);
+
+  const onWrongChain = Boolean(address) && chainId !== undefined && chainId !== targetChain.id;
+
+  // Ask once per account when it arrives on the wrong network. Wagmi falls back
+  // to wallet_addEthereumChain, so a wallet that has never seen Celo Sepolia is
+  // offered to add it rather than being left with nothing to switch to.
+  useEffect(() => {
+    if (!address || !onWrongChain || promptedFor.current === address) return;
+    promptedFor.current = address;
+    switchChain({ chainId: targetChain.id });
+  }, [address, onWrongChain, switchChain]);
 
   return (
     <>
       <div className="absolute top-4 right-4 z-[999] flex items-center gap-2">
         <ConnectButton.Custom>
-          {({ account, chain, openChainModal, openConnectModal, mounted }) => {
+          {({ account, chain, openConnectModal, mounted }) => {
             const connected = mounted && account && chain;
 
             if (!mounted) return <div aria-hidden="true" style={{ opacity: 0 }} />;
@@ -69,15 +107,8 @@ export default function WalletBar() {
               );
             }
 
-            if (chain.unsupported) {
-              return (
-                <button
-                  onClick={openChainModal}
-                  className="px-4 py-2 bg-red-500 hover:bg-red-400 text-white text-xs font-bold rounded-full shadow-lg transition-colors"
-                >
-                  Wrong Network
-                </button>
-              );
+            if (chain.unsupported || onWrongChain) {
+              return <SwitchNetworkButton />;
             }
 
             return (

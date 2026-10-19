@@ -12,6 +12,9 @@ const testnetRpc =
   process.env.NEXT_PUBLIC_TESTNET_RPC_URL ||
   "https://forno.celo-sepolia.celo-testnet.org";
 
+/** The chain the registry is deployed on. Everything else is the wrong network. */
+export const targetChain = isMainnet ? celo : celoSepolia;
+
 export const config = getDefaultConfig({
   appName: "BiodiversityOS",
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "biodiversityos",
